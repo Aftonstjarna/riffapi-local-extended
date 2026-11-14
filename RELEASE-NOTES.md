@@ -1,3 +1,59 @@
+# ReRiff 1.4.0-beta.1 — Singleplayer prestige base
+
+## In-game summary
+
+- Try opt-in singleplayer prestige with a manual Credits confirmation.
+- Keep your main level and equipped car and paint after prestige.
+- Earn more coins after prestige and see a star beside your level.
+
+## Full release notes
+
+### Opt-in singleplayer prestige
+
+- Select Singleplayer in the launcher and enable the experimental profile with
+  `[progression] isolate_singleplayer = 1` in the game folder's `server.ini`.
+  Restart after changing this setting. It is disabled by default.
+- Import an existing original save once into an account-specific local profile.
+  Native serialization, race records, ghosts, song history and generated tracks
+  are retained; isolated sessions do not replace the original Steam Cloud save.
+- With all 38 original in-game achievements completed, open Settings → Credits
+  and accept the native confirmation to prestige. Loading, saving, reaching
+  completion, Cancel and Back do not trigger a reset.
+- Reset coins, cycle XP, progression unlocks and cycle achievements. Retain the
+  permanent main XP/level, equipped car and equipped paint pack. Steam
+  achievements remain earned. Cycle progression uses the original XP thresholds.
+- Display the native difficulty star beside the permanent Profile level. The
+  first prestige uses a star alone; subsequent counts add xN. The badge follows
+  the level panel and hides on other Profile sections.
+- Track native saves and prestige counters together using checksummed two-slot
+  checkpoints with interrupted-transaction recovery. Retain the original save
+  and back up the complete isolated profile before experimenting or reverting.
+
+### Rewards and discounts
+
+- Multiply creator and race coin awards by prestige count + 1; purchases and
+  unrelated credits keep their original behavior. Match quoted and credited
+  amounts, and bound native signed counters.
+- Discount non-IAP paint packs using permanent level: 10% at 10, 20% at 20,
+  25% at 30, then diminishing increases toward 30%.
+
+### Validation and remaining beta work
+
+- Live tests verified original-save isolation, race/save/restart persistence,
+  discounted purchase persistence, manual prestige, retained equipped items,
+  original achievement reset, and the star's alignment and section visibility.
+- Automated checks cover reset refusal/confirmation, interrupted checkpoint
+  recovery, reward math, original method bindings and native UI lifecycle.
+  Live doubled creator/race payouts after prestige still need validation.
+- First Prestige is stored in the originally hidden achievement slot; its
+  logo-bearing achievement-list entry is not implemented yet.
+- This beta does not add multiplayer prestige, per-server progression authority
+  or configurable server balance. Those remain separate experimental work.
+- The independent launcher/client checks run in parallel with release validation.
+  Release installers retain the latest stable setup and pinned font downloads.
+
+For setup, rollback and test boundaries, see `docs/PRESTIGE.md` in the repository.
+
 # ReRiff 1.3.2 — Simpler setup and singleplayer controls
 
 ## In-game summary
