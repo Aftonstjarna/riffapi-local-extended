@@ -25,6 +25,7 @@ namespace ReRiff {
                     selected = Select(folder);
                     initialized = true;
                     StartEngineMenu();
+                    ProgressionDomain.Prepare(folder,selected);
                     bool showPopup = true;
                     try {
                         string setting;

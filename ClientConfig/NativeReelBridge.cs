@@ -32,7 +32,7 @@ namespace ReRiff {
 
         // addOption consumes an SSP passed by address in IL. Its C ABI adapter
         // accepts an owning object reference and supplies the temporary SSP.
-        private static Delegate CreateCall(MethodInfo target, Type delegateType, bool owningSsp) {
+        internal static Delegate CreateCall(MethodInfo target, Type delegateType, bool owningSsp) {
             MethodInfo invoke=delegateType.GetMethod("Invoke");
             ParameterInfo[] parameters=invoke.GetParameters();
             Type[] signature=new Type[parameters.Length];
@@ -100,6 +100,12 @@ namespace ReRiff {
                     Delegate callback=CreateCall(original,typeof(Overlay),false);Roots.Add(callback);overlayPointers[i]=Marshal.GetFunctionPointerForDelegate(callback);
                 }
                 ReRiffConfigureNativePrompt(overlayPointers,2);
+                try {ProgressionNative.Configure(game);}
+                catch(Exception error){Log("Original progression adapter unavailable; live prestige remains disabled: "+error);}
+                try {ProgressionView.Configure(game);}
+                catch(Exception error){Log("Permanent-level display binding unavailable: "+error);}
+                try {ProgressionEconomy.Configure(game);}
+                catch(Exception error){Log("Original economy trace unavailable; original amounts retained: "+error);}
             } catch(DllNotFoundException) { }
               catch(EntryPointNotFoundException) { }
               catch(BadImageFormatException) { }

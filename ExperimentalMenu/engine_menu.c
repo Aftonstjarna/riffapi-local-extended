@@ -223,6 +223,7 @@ static BOOL menu_overlay_active(void);
 #include "settings_scroll.h"
 #include "save_prompt.h"
 static void server_save_prompt_result(void *menu,int choice);
+static BOOL prestige_prompt_intercept(void *menu,int selection);
 
 static void __thiscall hook_colour(void *menu,int id,const float *colour) {
     original_colour(menu,id,colour);
@@ -390,6 +391,7 @@ static void __thiscall hook_cleanup(void *menu,void *screen,void *lower) {
 
 static void __thiscall hook_input(void *menu,int selection) {
     if(restarting||exiting)return;
+    if(prestige_prompt_intercept(menu,selection))return;
     if(page_owner==menu&&!server_page&&((int *)menu)[62]==0&&selection>=0&&selection<5){
         /* These latches belong only to Audio. The original handler rejects
          * every root selection if either stale latch remains set. */
@@ -635,6 +637,12 @@ static BOOL cjk_pack_enabled(void){
 }
 static BOOL cjk_component_enabled(void){return cjk_pack_enabled()||latin_pack_enabled();}
 #include "lastfm_utf8.h"
+#include "progression_probe.h"
+#include "progression_domain.h"
+#include "prestige_prompt.h"
+#include "progression_view.h"
+#include "progression_economy.h"
+#include "progression_rewards.h"
 #include "cjk_fonts.h"
 #include "cjk_direct_visuals.h"
 #include "unicode_trace.h"
@@ -686,6 +694,8 @@ __declspec(dllexport) BOOL __cdecl ReRiffStartEngineMenu(void) {
     if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_PIN,
         (const WCHAR *)(uintptr_t)&ReRiffStartEngineMenu,&pinned)) return FALSE;
     if(!install_lastfm_utf8(base))log_line("Last.fm UTF-8 correction refused: original CIL bytes differ.");
+    if(!install_progression_economy(base))log_line("Economy trace wrappers refused: original CIL differs.");
+    start_progression_probe(base);
     if(!install_flac_sample_rate(base))log_line("FLAC sample-rate patch guard refused; original decoder retained.");
     void **table=(void **)(base+0x7a5a7c); DWORD protection;
     if (!VirtualProtect(table,27*sizeof(void *),PAGE_READWRITE,&protection)) return FALSE;
@@ -713,6 +723,8 @@ __declspec(dllexport) BOOL __cdecl ReRiffStartEngineMenu(void) {
     if(!install_graphics_aa_menu(base))log_line("Native antialiasing control could not be installed.");
     if(!install_main_branding(base))log_line("Main-menu branding could not be installed.");
     if(!install_save_prompt(base))log_line("Native save prompt could not be installed.");
+    if(!install_progression_rewards(base))log_line("Native reward entry hooks refused; original awards retained.");
+    if(!install_progression_view(base))log_line("Permanent-level Profile display hook unavailable.");
     if(!install_ui_scale(base))log_line("Native UI-scale extension could not be installed.");
     install_unicode_trace(base);
     if(borderless_active)aa_attach();

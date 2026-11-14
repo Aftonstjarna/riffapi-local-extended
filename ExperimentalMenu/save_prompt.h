@@ -12,14 +12,15 @@ static BOOL menu_overlay_active(void){
 static void *save_prompt_owner;
 static SavePromptResult save_prompt_result;
 static int save_prompt_choice=-1;
+static WCHAR save_prompt_title[96],save_prompt_message[512];
 static ScreenFn prompt_init_original;
 static PromptEnterFn prompt_enter_original;
 static InputFn prompt_input_original;
 static void save_prompt_caption(void *dialog){
     if(!save_prompt_owner)return;
     void *title=((void **)dialog)[65],*message=((void **)dialog)[66];
-    if(readable(title,484))raw_text(title,L"SAVE SETTINGS");
-    if(readable(message,484))raw_text(message,L"Apply your changes before leaving?\nConfirm to save, or cancel to discard.\nPress Back to keep editing.");
+    if(readable(title,484))raw_text(title,save_prompt_title);
+    if(readable(message,484))raw_text(message,save_prompt_message);
 }
 static void __thiscall save_prompt_init(void *dialog,void *screen,void *lower){prompt_init_original(dialog,screen,lower);save_prompt_caption(dialog);}
 static void __thiscall save_prompt_enter(void *dialog,int previous){prompt_enter_original(dialog,previous);save_prompt_caption(dialog);}
@@ -29,11 +30,16 @@ static void __thiscall save_prompt_input(void *dialog,int selection){
     save_prompt_choice=selection==2?1:0;
     overlay_pop(*overlay_manager,TRUE);
 }
-static BOOL save_prompt_begin(void *owner,SavePromptResult result){
+static BOOL save_prompt_begin_caption(void *owner,SavePromptResult result,const WCHAR *title,const WCHAR *message){
+    if(!owner||!result||!title||!message||wcslen(title)>=96||wcslen(message)>=512)return FALSE;
     if(save_prompt_owner||!prompt_installed||!overlay_push||!overlay_pop||!readable(overlay_manager,4)||!readable(*overlay_manager,48))return FALSE;
     if(((void **)*overlay_manager)[11])return FALSE;
+    wcscpy(save_prompt_title,title);wcscpy(save_prompt_message,message);
     save_prompt_owner=owner;save_prompt_result=result;save_prompt_choice=-1;
-    overlay_push(*overlay_manager,9);log_line("Native save/discard overlay opened.");return TRUE;
+    overlay_push(*overlay_manager,9);log_line("Native confirmation overlay opened.");return TRUE;
+}
+static BOOL save_prompt_begin(void *owner,SavePromptResult result){
+    return save_prompt_begin_caption(owner,result,L"SAVE SETTINGS",L"Apply your changes before leaving?\nConfirm to save, or cancel to discard.\nPress Back to keep editing.");
 }
 static void save_prompt_tick(void *owner){
     if(save_prompt_owner!=owner||!readable(overlay_manager,4)||!readable(*overlay_manager,48)||((void **)*overlay_manager)[11])return;
