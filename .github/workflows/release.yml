@@ -14,6 +14,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  launcher-checks:
+    uses: ./.github/workflows/launcher-checks.yml
+  client-checks:
+    uses: ./.github/workflows/client-checks.yml
   windows-loader:
     runs-on: windows-latest
     steps:
@@ -57,6 +61,15 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           & .\build\logging-smoke\LoggingSmoke.exe
           exit $LASTEXITCODE
+      - name: Test prestige checkpoints, recovery and rewards
+        shell: pwsh
+        run: |
+          foreach ($test in @('ProgressionStore', 'ProgressionCheckpoints', 'PrestigeTransaction', 'ProgressionRewards')) {
+            dotnet build ClientConfig/Tests/ProgressionChecks.csproj -c Release -p:SmokeTest=$test -o "build/prestige-checks/$test"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            & "./build/prestige-checks/$test/$($test)Smoke.exe"
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          }
       - name: Test singleplayer routing on Microsoft .NET Framework
         shell: pwsh
         run: |
@@ -66,7 +79,7 @@ jobs:
           exit $LASTEXITCODE
   release:
     if: github.repository == 'Aftonstjarna/ReRiff'
-    needs: windows-loader
+    needs: [windows-loader, launcher-checks, client-checks]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:

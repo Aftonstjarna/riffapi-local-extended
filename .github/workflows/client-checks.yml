@@ -1,0 +1,104 @@
+name: Client checks
+
+on:
+  push:
+    paths:
+      - 'ClientConfig/**'
+      - 'ExperimentalMenu/**'
+      - 'NativeLauncher/notification.c'
+      - 'NativeLauncher/restart_protocol.h'
+      - 'NativeLauncher/logging.h'
+      - 'NewsHeaders/**'
+      - 'Managed/**'
+      - 'Shared/**'
+      - 'Patcher/**'
+      - 'scripts/build-client-config.py'
+      - 'scripts/build-news-headers.py'
+      - 'scripts/build-windows-launcher.py'
+      - 'VERSION'
+      - 'packaging/fetch_release_tools.py'
+      - '.github/workflows/client-checks.yml'
+  pull_request:
+    paths:
+      - 'ClientConfig/**'
+      - 'ExperimentalMenu/**'
+      - 'NativeLauncher/notification.c'
+      - 'NativeLauncher/restart_protocol.h'
+      - 'NativeLauncher/logging.h'
+      - 'NewsHeaders/**'
+      - 'Managed/**'
+      - 'Shared/**'
+      - 'Patcher/**'
+      - 'scripts/build-client-config.py'
+      - 'scripts/build-news-headers.py'
+      - 'scripts/build-windows-launcher.py'
+      - 'VERSION'
+      - 'packaging/fetch_release_tools.py'
+      - '.github/workflows/client-checks.yml'
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: client-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '8.0.x'
+      - name: Build managed client helpers
+        run: |
+          dotnet build ClientConfig/ClientConfig.csproj -c Release -o build/client-checks
+          dotnet build NewsHeaders/NewsHeaders.csproj -c Release -o build/client-checks
+      - name: Fetch checksum-pinned compiler
+        run: python packaging/fetch_release_tools.py --asset zig.tar.xz --directory "$RUNNER_TEMP/release-tools"
+      - name: Build client independently
+        run: >-
+          python scripts/build-windows-launcher.py
+          --zig "$RUNNER_TEMP/release-tools/zig-x86_64-linux-0.14.1/zig"
+          --component client --output-dir build/client-checks
+      - name: Build native regression executables
+        run: |
+          export ZIG_GLOBAL_CACHE_DIR="$RUNNER_TEMP/zig-global"
+          export ZIG_LOCAL_CACHE_DIR="$RUNNER_TEMP/zig-local"
+          for source in ExperimentalMenu/test_main_scale.c ExperimentalMenu/test_display_modes.c ExperimentalMenu/test_ui_scale.c ExperimentalMenu/test_save_prompt.c ExperimentalMenu/test_prestige_prompt.c ExperimentalMenu/test_progression_domain.c ExperimentalMenu/test_progression_probe.c ExperimentalMenu/test_progression_view.c ExperimentalMenu/test_progression_badge.c ExperimentalMenu/test_progression_rewards.c ExperimentalMenu/test_progression_economy.c; do
+            name=$(basename "$source" .c)
+            "$RUNNER_TEMP/release-tools/zig-x86_64-linux-0.14.1/zig" cc \
+              -target x86-windows-gnu -O2 -Wall -Wextra -Werror \
+              "-DRERIFF_VERSION=\"$(cat VERSION)\"" "$source" \
+              -o "build/client-checks/$name.exe" -Wl,--image-base,0x10000000 \
+              -lcomctl32 -lcomdlg32 -lwininet -lshell32 -luser32 -lgdi32 -ladvapi32 -static
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: client-checks-${{ github.sha }}
+          path: build/client-checks/*
+          retention-days: 7
+
+  native-tests:
+    needs: build
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: client-checks-${{ github.sha }}
+          path: component
+      - name: Run native regressions on Windows
+        shell: pwsh
+        run: |
+          Get-ChildItem component/test_*.exe | ForEach-Object {
+            & $_.FullName
+            if ($LASTEXITCODE -ne 0) { throw "Native regression failed: $($_.Name) ($LASTEXITCODE)" }
+          }

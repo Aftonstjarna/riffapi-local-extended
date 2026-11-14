@@ -2,7 +2,35 @@ name: Build and publish server container
 
 on:
   push:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - VERSION
+      - docker/**
+      - vendor/riffapi-local-extended/**
+      - ServerSync/**
+      - Progression/**
+      - packaging/requirements.txt
+      - scripts/trace-server.py
+      - scripts/test_server_identity.py
+      - scripts/test_song_aliases.py
+      - docs/tests/**
+      - .github/workflows/container.yml
   pull_request:
+    paths:
+      - Dockerfile
+      - .dockerignore
+      - VERSION
+      - docker/**
+      - vendor/riffapi-local-extended/**
+      - ServerSync/**
+      - Progression/**
+      - packaging/requirements.txt
+      - scripts/trace-server.py
+      - scripts/test_server_identity.py
+      - scripts/test_song_aliases.py
+      - docs/tests/**
+      - .github/workflows/container.yml
   workflow_dispatch:
 
 concurrency:

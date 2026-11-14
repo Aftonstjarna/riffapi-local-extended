@@ -704,6 +704,10 @@ For installer builds, build the client helpers and both optional server packages
 python3 packaging/build_release.py --local-patching
 ```
 
+Launcher, client mod and server have independent checks and can be developed
+in separate worktrees. See [parallel component development](docs/COMPONENT-WORKFLOWS.md)
+for source ownership, build commands and integration boundaries.
+
 Updating `VERSION` on `main` triggers a stable client release. The
 `codex/experimental-client` branch publishes betas named `X.X.X-beta.N`.
 The workflow builds and checks both installers before publishing assets and
